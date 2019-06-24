@@ -221,9 +221,12 @@ static int decode_frame_header(ProresContext *ctx, const uint8_t *buf,
     height = AV_RB16(buf + 10);
 
     if (width != avctx->width || height != avctx->height) {
-        av_log(avctx, AV_LOG_ERROR, "picture resolution change: %dx%d -> %dx%d\n",
+        int ret;
+
+        av_log(avctx, AV_LOG_WARNING, "picture resolution change: %dx%d -> %dx%d\n",
                avctx->width, avctx->height, width, height);
-        return AVERROR_PATCHWELCOME;
+        if ((ret = ff_set_dimensions(avctx, width, height)) < 0)
+            return ret;
     }
 
     ctx->frame_type = (buf[12] >> 2) & 3;
@@ -775,15 +778,16 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
     buf += frame_hdr_size;
     buf_size -= frame_hdr_size;
 
-    if ((ret = ff_thread_get_buffer(avctx, &tframe, 0)) < 0)
-        return ret;
-
  decode_picture:
     pic_size = decode_picture_header(avctx, buf, buf_size);
     if (pic_size < 0) {
         av_log(avctx, AV_LOG_ERROR, "error decoding picture header\n");
         return pic_size;
     }
+
+    if (ctx->first_field)
+        if ((ret = ff_thread_get_buffer(avctx, &tframe, 0)) < 0)
+            return ret;
 
     if ((ret = decode_picture(avctx)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "error decoding picture\n");
