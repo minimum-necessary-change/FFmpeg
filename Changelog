@@ -33,6 +33,8 @@ version <next>:
 - showspatial multimedia filter
 - VP4 video decoder
 - IFV demuxer
+- derain filter
+- deesser filter
 
 
 version 4.1:
